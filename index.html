@@ -21,7 +21,7 @@
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 16px/1.5 Inter,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
-body.hasbar .wrap{padding-bottom:120px}
+body.hasbar .wrap{padding-bottom:180px}
 body.noscroll{overflow:hidden}
 .wrap{max-width:1100px;margin:0 auto;padding:14px 16px 56px}
 h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.015em;margin:0}
@@ -32,7 +32,8 @@ button:focus-visible,select:focus-visible,input:focus-visible{outline:3px solid 
 .top{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
 .logo{display:flex;align-items:center;gap:6px;font:800 26px "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.03em}
 .lgt{display:inline-flex;align-items:center;gap:7px;font:800 27px "Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.02em;color:#fff;line-height:1}
-.lgt b{color:#2ecc71;font-weight:800;margin-left:0;font-size:1em}
+.lgt b{color:#fff;font-weight:800;margin-left:0;font-size:1em}
+.lgt .rl{width:30px;height:30px;margin-right:8px;flex:none}
 .lgt{white-space:nowrap;align-items:center}
 .lgt em{font-style:normal;background:var(--acc);color:#fff;border-radius:7px;padding:3px 7px 4px;margin:0 3px;letter-spacing:0}
 .lgt{gap:0}
@@ -114,6 +115,8 @@ input[type=search]{width:100%;padding:13px 16px;border-radius:14px;border:1px so
 .vloc .vb{display:flex;gap:8px;flex-wrap:wrap}
 .vloc a{text-decoration:none;border:1.5px solid var(--acc);color:var(--acc);border-radius:10px;padding:9px 14px;font:600 14px Inter,system-ui,sans-serif}
 .vloc a.fill{background:var(--acc);color:var(--onacc)}
+.tnl{display:block;font-size:13px;color:var(--mut);margin:12px 0}
+.tn{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:500 16px Inter,system-ui,sans-serif;background:var(--s1);color:inherit}
 .chain{margin-left:8px;font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
 .times{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .pill{background:none;border:1.5px solid;border-radius:10px;padding:8px 14px;font:600 15px Inter,system-ui,sans-serif;cursor:pointer}
@@ -229,6 +232,7 @@ h2{font-size:22px}
 .qrow{display:flex;align-items:center;gap:12px;background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:8px 14px;margin:6px 0}
 .qrow .qveh{width:84px;margin:0;animation:none}
 .qrow b{flex:1}
+.pvtop{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:10px 0 0;min-height:24px}
 .pvrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 0;font-size:13px;color:var(--mut)}
 .qbg{pointer-events:none}
 .qdim{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:30}
@@ -385,6 +389,21 @@ function getLoc(){
     S.loc={lat:p.coords.latitude,lng:p.coords.longitude};S.locLabel="";S.locErr="";
     S.county=nearestCounty(S.loc.lat,S.loc.lng)||S.county;render();
   },function(){S.locErr="Location was blocked. Showing distances from "+S.county+".";render();},{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+}
+
+// ---- Owner reporting (test phase): set REPORT_URL to your Formspree link to receive every booking ----
+var REPORT_URL="https://formspree.io/f/xdegnedr";
+function report(b,type){
+  if(!REPORT_URL) return;
+  try{
+    var body={_subject:(type==="booked"?"New booking ":"Cancelled booking ")+b.id,
+      type:type,bookingId:b.id,tester:b.tname||"(no name)",title:b.t,venue:b.venue||"",
+      total:"EUR "+Number(b.total).toFixed(2),
+      seats:(b.seats&&b.seats.length)?b.seats.join(", "):"",
+      details:(b.lines||[]).map(function(l){return l[0]+": "+l[1];}).join(" | ").replace(/€/g,"EUR "),
+      time:new Date().toLocaleString("en-IE")};
+    fetch(REPORT_URL,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(body)}).catch(function(){});
+  }catch(e){}
 }
 var SNACKS=("pc|Combos|Popcorn and drink|8.50|🍿;fam|Combos|Family combo: 2 popcorn, 2 drinks|16.00|🎬;ps|Snacks|Popcorn, small|4.50|🍿;pl|Snacks|Popcorn, large|6.50|🍿;pm|Snacks|Masala popcorn|5.50|🌶️;nc|Snacks|Nachos with cheese|6.00|🧀;hd|Snacks|Hot dog|5.50|🌭;sa|Snacks|Samosas (2)|4.50|🥟;cr|Snacks|Crisps|2.00|🥔;ic|Snacks|Ice cream|3.50|🍦;sd|Drinks|Soft drink|3.50|🥤;wa|Drinks|Bottled water|2.50|💧;tc|Drinks|Tea or coffee|3.00|☕;ls|Drinks|Fresh lime soda|3.50|🍋").split(";").map(function(x){var p=x.split("|");return {id:p[0],g:p[1],n:p[2],p:+p[3],ic:p[4]};});
 var EVENTS=["Bollywood Live Concert|Music|Hindi|Draíocht Blanchardstown","Tamil Music Night|Music|Tamil|Pavilion Theatre Dún Laoghaire","Malayalam Stage Comedy|Comedy|Malayalam|Mermaid Arts Centre Bray","Telugu Folk and Dance Evening|Cultural|Telugu|Belltable","Garba and Dandiya Night|Cultural|Hindi|Triskel Arts Centre","Irish Trad Session and Céilí|Music||Hawk’s Well Theatre","Stand-up Comedy Night|Comedy||Garter Lane Arts Centre","Bharatanatyam Dance Recital|Dance|Tamil|Lime Tree Theatre","Kids Magic Show|Family||Solstice Arts Centre","Jazz and Poetry Evening|Music||Riverbank Arts Centre","Ghazal Evening|Music|Hindi|The Sugar Club","Folk Night|Music||Excel Arts and Cultural Centre","Bollywood Dance Workshop|Dance|Hindi|An Táin Arts Centre"];
@@ -576,7 +595,7 @@ function drawGrid(){
   }
 }
 function navHTML(home){
-  var logo='<button class="logo" data-a="home" aria-label="GetMYticket.IE home"><span class="lgt"><span>Get</span><em>MY</em><span>ticket</span><b>.IE</b></span></button>';
+  var logo='<button class="logo" data-a="home" aria-label="GetMYticket.IE home"><span class="lgt"><svg class="rl" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="none" stroke="#E63950" stroke-width="3.4"/><circle cx="20" cy="20" r="14.8" fill="#fff"/><g fill="#1d1b3a"><circle cx="20" cy="10" r="3.6"/><circle cx="29.5" cy="17" r="3.6"/><circle cx="25.9" cy="28.2" r="3.6"/><circle cx="14.1" cy="28.2" r="3.6"/><circle cx="10.5" cy="17" r="3.6"/><circle cx="20" cy="20" r="2.8"/></g></svg><span>Get</span><em>MY</em><span>ticket</span><b>.IE</b></span></button>';
   if(!home) return '<header class="nav"><div class="navin">'+logo+'<button class="navtix" data-a="mytix">🎟 My tickets'+tcnt()+'</button></div></header>';
   var mv=S.tab==="movies";
   return '<header class="nav"><div class="navin hm">'+logo+'<input class="sq" type="search" id="q" placeholder="'+(mv?"Search for movies, genres or languages":"Search for events, venues or languages")+'" value="'+esc(S.q)+'" aria-label="Search"><label class="loc"><span aria-hidden="true">📍</span><select id="county" aria-label="County">'+counties.map(function(c){return '<option'+(c===S.county?' selected':'')+'>'+esc(c)+'</option>';}).join("")+'</select></label></div>'+
@@ -641,8 +660,9 @@ function seatsHTML(){
   });
   return '<div class="mh"><button class="round2" data-a="back" aria-label="Back">‹</button><div><h1>'+esc(S.film.t)+'</h1><div class="sub">'+esc(S.cin)+' · '+esc(dlabel(S.day))+', '+S.time+'</div></div></div>'+
   '<div class="qrow"><div class="qveh">'+veh(S.qty)+'</div><b>'+S.qty+' ticket'+(S.qty===1?'':'s')+'</b><button class="chip" data-a="chqty">Change</button></div><div class="legend"><span><i style="border:1.5px solid var(--acc)"></i>Premium '+money(14.5)+'</span><span><i style="border:1.5px solid var(--grn)"></i>Standard '+money(11.5)+'</span><span><i style="background:var(--s2)"></i>Taken</span></div>'+
+  '<div class="pvrow pvtop">👁 '+(S.seats.length?'View from my seat: '+S.seats.map(function(id){return '<button class="chip" data-a="seat3d" data-s="'+id+'">'+id+'</button>';}).join(""):'Choose a seat to see the view from it')+'</div>'+
   '<svg class="curve" viewBox="0 0 300 34" aria-hidden="true"><defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E63950" stop-opacity="0"/><stop offset=".5" stop-color="#FF7A90"/><stop offset="1" stop-color="#E63950" stop-opacity="0"/></linearGradient></defs><path d="M6 28 Q150 0 294 28" fill="none" stroke="url(#cg)" stroke-width="4" stroke-linecap="round"/></svg><div class="scrl">Screen</div>'+
-  '<div class="seats">'+out+'</div><p class="hint">'+(S.seats.length>=S.qty?'All '+S.qty+' seats chosen. Tap a chosen seat to remove it first.':'Tap seats to choose them. Tap a chosen seat again to remove it.')+'</p>'+(S.seats.length?'<div class="pvrow">View from: '+S.seats.map(function(id){return '<button class="chip" data-a="seat3d" data-s="'+id+'">'+id+'</button>';}).join("")+'</div>':'')+
+  '<div class="seats">'+out+'</div><p class="hint">'+(S.seats.length>=S.qty?'All '+S.qty+' seats chosen. Tap a chosen seat to remove it first.':'Tap seats to choose them. Tap a chosen seat again to remove it.')+'</p>'+
   '<div class="bar"><div><b>'+S.seats.length+' of '+S.qty+' seats</b><div class="sub">'+(S.seats.length?esc(S.seats.join(", ")):'Pick '+S.qty+(S.qty===1?' seat':' seats'))+'</div></div><button class="btn" data-a="pay"'+(S.seats.length===S.qty?'':' disabled')+'>'+(S.seats.length===S.qty?'Next · '+money(seatTotal()):'Next')+'</button></div>';
 }
 function seatX(c){return (c-5.5)*1.2+(c<=5?-0.4:0.4);}
@@ -730,7 +750,7 @@ function summary(){return sHTML(sLines());}
 function item(){return S.mode==="event"?S.ev:S.film;}
 function payHTML(){
   var x=item();
-  return '<div class="mh"><button class="round2" data-a="back" aria-label="Back">‹</button><div><h1>Review booking</h1><div class="sub">'+esc(x.t)+'</div></div></div><p class="demo">Test mode. No payment is taken.</p><div class="stub" style="margin-top:0"><div class="sart">'+art(kindOf(x),hash(x.t),400,150)+'<b>'+esc(x.t)+'</b></div><div class="stubbody sum">'+summary()+'</div></div>'+
+  return '<div class="mh"><button class="round2" data-a="back" aria-label="Back">‹</button><div><h1>Review booking</h1><div class="sub">'+esc(x.t)+'</div></div></div><p class="demo">Test mode. No payment is taken. Your booking details are shared with the app owner for testing.</p><label class="tnl">Your name (optional)<input id="tn" class="tn" maxlength="40" placeholder="So the owner knows who booked" value="'+esc((function(){try{return localStorage.getItem("ep_tname")||"";}catch(e){return "";}})())+'"></label><div class="stub" style="margin-top:0"><div class="sart">'+art(kindOf(x),hash(x.t),400,150)+'<b>'+esc(x.t)+'</b></div><div class="stubbody sum">'+summary()+'</div></div>'+
   '<div class="bar"><div><b>'+money(total())+'</b><div class="sub">Total</div></div><button class="btn" data-a="confirm">Confirm booking</button></div>';
 }
 function qrText(b){return ("GETMYTICKET.IE TEST TICKET\n"+b.id+"\n"+b.t+"\n"+b.lines.map(function(l){return l[0]+": "+l[1];}).join("\n")).replace(/×/g,"x").replace(/€/g,"EUR ");}
@@ -796,11 +816,11 @@ $("app").addEventListener("click",function(e){
   else if(a==="tq"){var t=b.getAttribute("data-k"),n=S.tq.s+S.tq.p;if(d>0&&n>=6)return;S.tq[t]=Math.max(0,S.tq[t]+d);render();}
   else if(a==="pay"){if(S.seats.length&&S.seats.length===S.qty)go("snacks");}
   else if(a==="topay"){go("pay");}
-  else if(a==="confirm"){var x=item(),id="EP"+(100000+hash(S.mode+x.t+S.seats.join()+Date.now())%900000),mv=S.mode==="movie";S.tk={id:id,mode:S.mode,venue:(S.mode==="movie"?S.cin:x.venue),t:x.t,k:kindOf(x),lines:sLines(),total:total(),seats:mv?S.seats.slice():[],key:mv?key():"",food:mv&&snackTotal()>0,made:Date.now()};BK.unshift(S.tk);saveBK();S.fresh=true;S.cx=false;go("ticket");}
+  else if(a==="confirm"){var tni=$("tn"),tnm=tni?tni.value.trim().slice(0,40):"";try{localStorage.setItem("ep_tname",tnm);}catch(e){}var x=item(),id="EP"+(100000+hash(S.mode+x.t+S.seats.join()+Date.now())%900000),mv=S.mode==="movie";S.tk={id:id,mode:S.mode,venue:(S.mode==="movie"?S.cin:x.venue),t:x.t,k:kindOf(x),lines:sLines(),total:total(),seats:mv?S.seats.slice():[],key:mv?key():"",food:mv&&snackTotal()>0,made:Date.now(),tname:tnm};BK.unshift(S.tk);saveBK();report(S.tk,"booked");S.fresh=true;S.cx=false;go("ticket");}
   else if(a==="mytix"){go("mytix");}
   else if(a==="sq"){if(S.view!=="home")go("home");window.scrollTo(0,0);var qi=$("q");if(qi)qi.focus();}
   else if(a==="openbk"){S.tk=BK[+b.getAttribute("data-i")];S.fresh=false;S.cx=false;go("ticket");}
-  else if(a==="cancel"){if(!S.cx){S.cx=true;render();}else{BK=BK.filter(function(z){return z.id!==S.tk.id;});saveBK();S.cx=false;go("mytix");}}
+  else if(a==="cancel"){if(!S.cx){S.cx=true;render();}else{report(S.tk,"cancelled");BK=BK.filter(function(z){return z.id!==S.tk.id;});saveBK();S.cx=false;go("mytix");}}
   else if(a==="back"){go({film:"home",times:"film",seats:"qty",qty:"times",snacks:"seats",evt:"home",tix:"evt",pay:S.mode==="event"?"tix":"snacks"}[S.view]);}
   else if(a==="home"){S.seats=[];S.snacks={};S.tq={s:0,p:0};go("home");}
 });
