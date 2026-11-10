@@ -117,6 +117,7 @@ input[type=search]{width:100%;padding:13px 16px;border-radius:14px;border:1px so
 .vloc a.fill{background:var(--acc);color:var(--onacc)}
 .tnl{display:block;font-size:13px;color:var(--mut);margin:12px 0}
 .tn{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;font:500 16px Inter,system-ui,sans-serif;background:var(--s1);color:inherit}
+.tiny2{display:block;font-size:12px;color:var(--mut);margin-top:6px}
 .chain{margin-left:8px;font-size:12px;color:var(--mut);border:1px solid var(--line);border-radius:6px;padding:1px 7px}
 .times{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
 .pill{background:none;border:1.5px solid;border-radius:10px;padding:8px 14px;font:600 15px Inter,system-ui,sans-serif;cursor:pointer}
@@ -233,6 +234,9 @@ h2{font-size:22px}
 .qrow .qveh{width:84px;margin:0;animation:none}
 .qrow b{flex:1}
 .pvtop{background:var(--s1);border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:10px 0 0;min-height:24px}
+.angles{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 14px;font-size:13px;color:#b9b9c4}
+.angles .chip{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}
+.angles .chip.on{background:#6EE7B7;color:#04231a;border-color:#6EE7B7}
 .pvrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 0;font-size:13px;color:var(--mut)}
 .qbg{pointer-events:none}
 .qdim{position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:30}
@@ -397,7 +401,7 @@ function report(b,type){
   if(!REPORT_URL) return;
   try{
     var body={_subject:(type==="booked"?"New booking ":"Cancelled booking ")+b.id,
-      type:type,bookingId:b.id,tester:b.tname||"(no name)",title:b.t,venue:b.venue||"",
+      type:type,bookingId:b.id,tester:b.tname||"(no name)",email:b.email||"",title:b.t,venue:b.venue||"",
       total:"EUR "+Number(b.total).toFixed(2),
       seats:(b.seats&&b.seats.length)?b.seats.join(", "):"",
       details:(b.lines||[]).map(function(l){return l[0]+": "+l[1];}).join(" | ").replace(/€/g,"EUR "),
@@ -405,6 +409,25 @@ function report(b,type){
     fetch(REPORT_URL,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json"},body:JSON.stringify(body)}).catch(function(){});
   }catch(e){}
 }
+
+// ---- Email confirmation (EmailJS). Fill these three values to switch it on ----
+var EMAIL_CFG={service:"service_xa397hn",template:"template_tu5cmau",key:"S5ADozlUj4I-5Ab6J"};
+function mailOn(){return !!(EMAIL_CFG.service&&EMAIL_CFG.template&&EMAIL_CFG.key);}
+function validEmail(e){return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);}
+function sendMail(b){
+  if(!mailOn()||!b.email) return;
+  try{
+    var when=(b.lines||[]).filter(function(l){return l[0]==="When";})[0];
+    var p={to_email:b.email,to_name:b.tname||"there",booking_id:b.id,title:b.t,venue:b.venue||"",
+      when:when?when[1]:"",seats:(b.seats&&b.seats.length)?b.seats.join(", "):"",
+      total:"EUR "+Number(b.total).toFixed(2),
+      details:(b.lines||[]).map(function(l){return l[0]+": "+l[1];}).join("\n").replace(/€/g,"EUR "),
+      maps_link:b.venue?"https://www.google.com/maps/dir/?api=1&destination="+mapsQ(b.venue)+"&travelmode=driving":""};
+    fetch("https://api.emailjs.com/api/v1.0/email/send",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({service_id:EMAIL_CFG.service,template_id:EMAIL_CFG.template,user_id:EMAIL_CFG.key,template_params:p})}).catch(function(){});
+  }catch(e){}
+}
+function mailNote(b){return (S.fresh&&b.email&&mailOn())?'<p class="sub" style="margin:10px 0 0;text-align:center">Confirmation email is on its way to '+esc(b.email)+'</p>':'';}
 var SNACKS=("pc|Combos|Popcorn and drink|8.50|🍿;fam|Combos|Family combo: 2 popcorn, 2 drinks|16.00|🎬;ps|Snacks|Popcorn, small|4.50|🍿;pl|Snacks|Popcorn, large|6.50|🍿;pm|Snacks|Masala popcorn|5.50|🌶️;nc|Snacks|Nachos with cheese|6.00|🧀;hd|Snacks|Hot dog|5.50|🌭;sa|Snacks|Samosas (2)|4.50|🥟;cr|Snacks|Crisps|2.00|🥔;ic|Snacks|Ice cream|3.50|🍦;sd|Drinks|Soft drink|3.50|🥤;wa|Drinks|Bottled water|2.50|💧;tc|Drinks|Tea or coffee|3.00|☕;ls|Drinks|Fresh lime soda|3.50|🍋").split(";").map(function(x){var p=x.split("|");return {id:p[0],g:p[1],n:p[2],p:+p[3],ic:p[4]};});
 var EVENTS=["Bollywood Live Concert|Music|Hindi|Draíocht Blanchardstown","Tamil Music Night|Music|Tamil|Pavilion Theatre Dún Laoghaire","Malayalam Stage Comedy|Comedy|Malayalam|Mermaid Arts Centre Bray","Telugu Folk and Dance Evening|Cultural|Telugu|Belltable","Garba and Dandiya Night|Cultural|Hindi|Triskel Arts Centre","Irish Trad Session and Céilí|Music||Hawk’s Well Theatre","Stand-up Comedy Night|Comedy||Garter Lane Arts Centre","Bharatanatyam Dance Recital|Dance|Tamil|Lime Tree Theatre","Kids Magic Show|Family||Solstice Arts Centre","Jazz and Poetry Evening|Music||Riverbank Arts Centre","Ghazal Evening|Music|Hindi|The Sugar Club","Folk Night|Music||Excel Arts and Cultural Centre","Bollywood Dance Workshop|Dance|Hindi|An Táin Arts Centre"];
 var EV=EVENTS.map(function(x,i){var p=x.split("|"),h=hash(p[0]);return {i:i,t:p[0],cat:p[1],lang:p[2],venue:p[3],co:lookup[p[3]].co,off:1+h%12,time:["19:00","19:30","20:00","20:30"][hash(p[0]+"x")%4],p:18+(h%5)*4};});
@@ -660,10 +683,21 @@ function seatsHTML(){
   });
   return '<div class="mh"><button class="round2" data-a="back" aria-label="Back">‹</button><div><h1>'+esc(S.film.t)+'</h1><div class="sub">'+esc(S.cin)+' · '+esc(dlabel(S.day))+', '+S.time+'</div></div></div>'+
   '<div class="qrow"><div class="qveh">'+veh(S.qty)+'</div><b>'+S.qty+' ticket'+(S.qty===1?'':'s')+'</b><button class="chip" data-a="chqty">Change</button></div><div class="legend"><span><i style="border:1.5px solid var(--acc)"></i>Premium '+money(14.5)+'</span><span><i style="border:1.5px solid var(--grn)"></i>Standard '+money(11.5)+'</span><span><i style="background:var(--s2)"></i>Taken</span></div>'+
-  '<div class="pvrow pvtop">👁 '+(S.seats.length?'View from my seat: '+S.seats.map(function(id){return '<button class="chip" data-a="seat3d" data-s="'+id+'">'+id+'</button>';}).join(""):'Choose a seat to see the view from it')+'</div>'+
+  (S.qty>=4?'<p class="hint" style="margin:8px 0 0">Groups of '+S.qty+' or more sit together. Tap one seat and we pick '+S.qty+' in a row.</p>':'')+(S.seatMsg?'<p class="hint" style="color:var(--red);font-weight:600">'+esc(S.seatMsg)+'</p>':'')+
   '<svg class="curve" viewBox="0 0 300 34" aria-hidden="true"><defs><linearGradient id="cg" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#E63950" stop-opacity="0"/><stop offset=".5" stop-color="#FF7A90"/><stop offset="1" stop-color="#E63950" stop-opacity="0"/></linearGradient></defs><path d="M6 28 Q150 0 294 28" fill="none" stroke="url(#cg)" stroke-width="4" stroke-linecap="round"/></svg><div class="scrl">Screen</div>'+
-  '<div class="seats">'+out+'</div><p class="hint">'+(S.seats.length>=S.qty?'All '+S.qty+' seats chosen. Tap a chosen seat to remove it first.':'Tap seats to choose them. Tap a chosen seat again to remove it.')+'</p>'+
+  '<div class="seats">'+out+'</div><p class="hint">'+(S.seats.length>=S.qty?(S.qty>=4?'All '+S.qty+' seats chosen. Tap a chosen seat to clear them.':'All '+S.qty+' seats chosen. Tap a chosen seat to remove it first.'):(S.qty>=4?'Tap a seat to pick '+S.qty+' together. You will see the view from it.':'Tap a seat to see the view from it. You can change it there.'))+'</p>'+
   '<div class="bar"><div><b>'+S.seats.length+' of '+S.qty+' seats</b><div class="sub">'+(S.seats.length?esc(S.seats.join(", ")):'Pick '+S.qty+(S.qty===1?' seat':' seats'))+'</div></div><button class="btn" data-a="pay"'+(S.seats.length===S.qty?'':' disabled')+'>'+(S.seats.length===S.qty?'Next · '+money(seatTotal()):'Next')+'</button></div>';
+}
+function seatFree(k,id){return !(hash(k+id)%100<30||taken(k,id));}
+function blockFor(id){
+  var r=id.charAt(0),c=+id.slice(1),k=key(),n=S.qty;
+  for(var st=c;st>=c-n+1;st--){
+    if(st<1||st+n-1>10) continue;
+    var ok=true,ids=[];
+    for(var j=st;j<st+n;j++){var q=r+j;ids.push(q);if(!seatFree(k,q)){ok=false;break;}}
+    if(ok) return ids;
+  }
+  return null;
 }
 function seatX(c){return (c-5.5)*1.2+(c<=5?-0.4:0.4);}
 function seatGeo(id){var r="ABCDEFGH".indexOf(id.charAt(0)),c=+id.slice(1);return {id:id,r:r,c:c,x:seatX(c),d:5.2+r*1.1,e:1.1+r*0.18};}
@@ -707,7 +741,8 @@ function svHTML(){
   return '<div class="sv"><div class="svs" id="svs">'+stageHTML(g)+'<div class="svt"><button class="round" data-a="svback" aria-label="Back to seat map">‹</button><span class="pillv"><i></i>View from '+S.pv+'</span></div></div>'+
   '<div class="sheet"><div class="sh"><div><div class="zone">'+zone+'</div><h2>Row '+S.pv.charAt(0)+', Seat '+g.c+'</h2><div class="sub2">'+(prem?"Premium":"Standard")+' · '+money(pr)+'</div></div>'+mm+'</div>'+
   '<div class="stats"><div class="stat"><b>'+g.d.toFixed(1)+' m</b><span>to screen</span></div><div class="stat"><b>'+fovOf(g)+'°</b><span>field of view</span></div><div class="stat">'+third+'</div></div>'+
-  '<div class="acts"><button class="ghost" data-a="svremove">Remove seat</button><button class="white" data-a="svbook">Back to seats</button></div>'+
+  (S.seats.length>1?'<div class="angles"><span>Different angle</span>'+S.seats.map(function(id){return '<button class="chip'+(id===S.pv?' on':'')+'" data-a="svview" data-s="'+id+'">'+id+'</button>';}).join("")+'</div>':'')+
+  '<div class="acts"><button class="ghost" data-a="svremove">Change seat</button><button class="white" data-a="svbook">'+(S.seats.length===S.qty?'Book · '+money(seatTotal()):'Pick next seat')+'</button></div>'+
   '<p class="tiny">Approximate view from a sample hall layout.</p></div></div>';
 }
 function fit(){
@@ -750,7 +785,7 @@ function summary(){return sHTML(sLines());}
 function item(){return S.mode==="event"?S.ev:S.film;}
 function payHTML(){
   var x=item();
-  return '<div class="mh"><button class="round2" data-a="back" aria-label="Back">‹</button><div><h1>Review booking</h1><div class="sub">'+esc(x.t)+'</div></div></div><p class="demo">Test mode. No payment is taken. Your booking details are shared with the app owner for testing.</p><label class="tnl">Your name (optional)<input id="tn" class="tn" maxlength="40" placeholder="So the owner knows who booked" value="'+esc((function(){try{return localStorage.getItem("ep_tname")||"";}catch(e){return "";}})())+'"></label><div class="stub" style="margin-top:0"><div class="sart">'+art(kindOf(x),hash(x.t),400,150)+'<b>'+esc(x.t)+'</b></div><div class="stubbody sum">'+summary()+'</div></div>'+
+  return '<div class="mh"><button class="round2" data-a="back" aria-label="Back">‹</button><div><h1>Review booking</h1><div class="sub">'+esc(x.t)+'</div></div></div><p class="demo">Test mode. No payment is taken. Your booking details are shared with the app owner for testing.</p><label class="tnl">Your name (optional)<input id="tn" class="tn" maxlength="40" placeholder="So the owner knows who booked" value="'+esc(S.tname||(function(){try{return localStorage.getItem("ep_tname")||"";}catch(e){return "";}})())+'"></label>'+(mailOn()?'<label class="tnl">Email for your confirmation<input id="te" class="tn" type="email" inputmode="email" autocomplete="email" maxlength="80" placeholder="you@example.com" value="'+esc(S.temail||(function(){try{return localStorage.getItem("ep_temail")||"";}catch(e){return "";}})())+'"><span class="tiny2">Used only to send this confirmation.</span>'+(S.mailErr?'<span class="tiny2" style="color:var(--red);font-weight:600">'+esc(S.mailErr)+'</span>':'')+'</label>':'')+'<div class="stub" style="margin-top:0"><div class="sart">'+art(kindOf(x),hash(x.t),400,150)+'<b>'+esc(x.t)+'</b></div><div class="stubbody sum">'+summary()+'</div></div>'+
   '<div class="bar"><div><b>'+money(total())+'</b><div class="sub">Total</div></div><button class="btn" data-a="confirm">Confirm booking</button></div>';
 }
 function qrText(b){return ("GETMYTICKET.IE TEST TICKET\n"+b.id+"\n"+b.t+"\n"+b.lines.map(function(l){return l[0]+": "+l[1];}).join("\n")).replace(/×/g,"x").replace(/€/g,"EUR ");}
@@ -768,7 +803,7 @@ function venueBlock(b){
 }
 function ticketHTML(){
   var b=S.tk,food=b.food?'<p class="sub">Food and drinks: collect at the counter and show this ID.</p>':'';
-  return '<div class="mh"><div><h1>'+(S.fresh?'Booking confirmed':'Your ticket')+'</h1></div></div><p class="demo">Test ticket. Not valid for entry.</p><div class="stub" style="margin-top:0"><div class="sart">'+art(b.k,hash(b.t),400,150)+'<b>'+esc(b.t)+'</b></div><div class="perf"></div><div class="stubbody"><div class="sum">'+sHTML(b.lines)+'</div>'+venueBlock(b)+'<div class="qrbox" id="qrbox" aria-label="Ticket QR code"></div><b>'+esc(b.id)+'</b>'+food+'</div></div>'+
+  return '<div class="mh"><div><h1>'+(S.fresh?'Booking confirmed':'Your ticket')+'</h1></div></div><p class="demo">Test ticket. Not valid for entry.</p><div class="stub" style="margin-top:0"><div class="sart">'+art(b.k,hash(b.t),400,150)+'<b>'+esc(b.t)+'</b></div><div class="perf"></div><div class="stubbody"><div class="sum">'+sHTML(b.lines)+'</div>'+venueBlock(b)+mailNote(b)+'<div class="qrbox" id="qrbox" aria-label="Ticket QR code"></div><b>'+esc(b.id)+'</b>'+food+'</div></div>'+
   '<p style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap"><button class="btn" data-a="home">Back to home</button><button class="btn alt" data-a="mytix">My tickets</button></p><button class="ghostb" data-a="cancel">'+(S.cx?'Tap again to cancel booking':'Cancel booking')+'</button>';
 }
 function mytixHTML(){
@@ -804,19 +839,26 @@ $("app").addEventListener("click",function(e){
   else if(a==="day"){S.day=+b.getAttribute("data-n");render();}
   else if(a==="geo"){getLoc();}
   else if(a==="slot"){S.cin=b.getAttribute("data-c");S.time=b.getAttribute("data-t");S.seats=[];S.snacks={};S.qty=S.qty||2;S.qnew=true;go("qty");}
-  else if(a==="seat"){var id=b.getAttribute("data-s"),i=S.seats.indexOf(id);if(i>-1){S.seats.splice(i,1);}else if(S.seats.length<S.qty){S.seats.push(id);S.seats.sort();}else return;var yy=window.scrollY||0;render();window.scrollTo(0,yy);}
+  else if(a==="seat"){var id=b.getAttribute("data-s"),i=S.seats.indexOf(id),yy=window.scrollY||0;S.seatMsg="";
+    if(i>-1){if(S.qty>=4)S.seats=[];else S.seats.splice(i,1);render();window.scrollTo(0,yy);}
+    else if(S.qty>=4){var blk=blockFor(id);if(blk){S.seats=blk;S.pv=id;S.sy=yy;S.view="sv";render();window.scrollTo(0,0);}else{S.seatMsg="No "+S.qty+" seats together from "+id+". Try another seat or row.";render();window.scrollTo(0,yy);}}
+    else if(S.seats.length<S.qty){S.seats.push(id);S.seats.sort();S.pv=id;S.sy=yy;S.view="sv";render();window.scrollTo(0,0);}
+    else return;}
   else if(a==="qty"){S.qty=+b.getAttribute("data-n");render();}
   else if(a==="toseats"){if(S.seats.length>S.qty)S.seats=S.seats.slice(0,S.qty);go("seats");}
   else if(a==="chqty"){S.qnew=true;go("qty");}
   else if(a==="seat3d"){S.pv=b.getAttribute("data-s");S.sy=window.scrollY||0;S.view="sv";render();window.scrollTo(0,0);}
-  else if(a==="svremove"){var ri=S.seats.indexOf(S.pv);if(ri>-1)S.seats.splice(ri,1);S.view="seats";render();window.scrollTo(0,S.sy);}
+  else if(a==="svremove"){if(S.qty>=4)S.seats=[];else{var ri=S.seats.indexOf(S.pv);if(ri>-1)S.seats.splice(ri,1);}S.view="seats";render();window.scrollTo(0,S.sy);}
+  else if(a==="svview"){S.pv=b.getAttribute("data-s");render();window.scrollTo(0,0);}
   else if(a==="svback"){S.view="seats";render();window.scrollTo(0,S.sy);}
-  else if(a==="svbook"){S.view="seats";render();window.scrollTo(0,S.sy);}
+  else if(a==="svbook"){if(S.seats.length===S.qty){go("snacks");}else{S.view="seats";render();window.scrollTo(0,S.sy);}}
   else if(a==="sn"){var k=b.getAttribute("data-id");S.snacks[k]=Math.max(0,Math.min(10,(S.snacks[k]||0)+d));render();}
   else if(a==="tq"){var t=b.getAttribute("data-k"),n=S.tq.s+S.tq.p;if(d>0&&n>=6)return;S.tq[t]=Math.max(0,S.tq[t]+d);render();}
   else if(a==="pay"){if(S.seats.length&&S.seats.length===S.qty)go("snacks");}
   else if(a==="topay"){go("pay");}
-  else if(a==="confirm"){var tni=$("tn"),tnm=tni?tni.value.trim().slice(0,40):"";try{localStorage.setItem("ep_tname",tnm);}catch(e){}var x=item(),id="EP"+(100000+hash(S.mode+x.t+S.seats.join()+Date.now())%900000),mv=S.mode==="movie";S.tk={id:id,mode:S.mode,venue:(S.mode==="movie"?S.cin:x.venue),t:x.t,k:kindOf(x),lines:sLines(),total:total(),seats:mv?S.seats.slice():[],key:mv?key():"",food:mv&&snackTotal()>0,made:Date.now(),tname:tnm};BK.unshift(S.tk);saveBK();report(S.tk,"booked");S.fresh=true;S.cx=false;go("ticket");}
+  else if(a==="confirm"){var tni=$("tn"),tnm=tni?tni.value.trim().slice(0,40):"",tei=$("te"),tem=tei?tei.value.trim().slice(0,80):"";
+    if(tem&&!validEmail(tem)){S.tname=tnm;S.temail=tem;S.mailErr="That email address does not look right.";render();return;}
+    S.mailErr="";try{localStorage.setItem("ep_tname",tnm);if(tem)localStorage.setItem("ep_temail",tem);}catch(e){}var x=item(),id="EP"+(100000+hash(S.mode+x.t+S.seats.join()+Date.now())%900000),mv=S.mode==="movie";S.tk={id:id,mode:S.mode,venue:(S.mode==="movie"?S.cin:x.venue),t:x.t,k:kindOf(x),lines:sLines(),total:total(),seats:mv?S.seats.slice():[],key:mv?key():"",food:mv&&snackTotal()>0,made:Date.now(),tname:tnm,email:tem};BK.unshift(S.tk);saveBK();report(S.tk,"booked");sendMail(S.tk);S.fresh=true;S.cx=false;go("ticket");}
   else if(a==="mytix"){go("mytix");}
   else if(a==="sq"){if(S.view!=="home")go("home");window.scrollTo(0,0);var qi=$("q");if(qi)qi.focus();}
   else if(a==="openbk"){S.tk=BK[+b.getAttribute("data-i")];S.fresh=false;S.cx=false;go("ticket");}
